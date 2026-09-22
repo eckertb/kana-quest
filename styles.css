@@ -21,7 +21,7 @@
   --shadow: 0 20px 50px -24px rgba(28, 31, 46, 0.35);
   --shadow-sm: 0 8px 24px -12px rgba(28, 31, 46, 0.3);
   --radius: 24px;
-  --kana-size: clamp(9rem, 32vw, 15rem);
+  --kana-size: clamp(5.5rem, min(32vw, 24vh), 15rem);
 }
 
 [data-theme="dark"] {
@@ -464,9 +464,32 @@ kbd {
 @media (max-width: 480px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .stat-value { font-size: 1.25rem; }
-  :root { --kana-size: 7.5rem; }
+  :root { --kana-size: clamp(5rem, min(38vw, 22vh), 7.5rem); }
   .brand-name { font-size: 1.1rem; }
 }
+
+/* Touch devices: lock the page to the *visible* viewport so the
+   on-screen keyboard doesn't shift/scroll the layout around */
+@media (pointer: coarse) {
+  html, body { overflow: hidden; overscroll-behavior: none; }
+  .app {
+    height: var(--app-h, 100dvh);
+    min-height: 0;
+    overflow: hidden;
+  }
+  .card-wrap { min-height: 0; }
+  .card { min-height: 0; }
+  .kana-stage { flex-shrink: 1; }
+}
+
+/* Compact layout while the keyboard is open */
+body.keyboard-open .stats,
+body.keyboard-open .footer,
+body.keyboard-open .hint { display: none; }
+body.keyboard-open { --kana-size: min(38vw, calc(var(--app-h, 100vh) * 0.34)); }
+body.keyboard-open .app { gap: 10px; padding: 12px 16px; }
+body.keyboard-open .card { gap: 12px; padding: 14px; }
+body.keyboard-open .brand-name { font-size: 1rem; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

@@ -1,5 +1,5 @@
 /* Kana Quest — service worker (offline + installable) */
-const CACHE = 'kana-quest-v1';
+const CACHE = 'kana-quest-v2';
 const ASSETS = [
   './',
   './index.html',

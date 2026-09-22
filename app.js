@@ -319,6 +319,17 @@ function applyTheme(theme) {
   saveJSON('kanaQuest.theme', { theme });
 }
 
+/* ---------------- Mobile viewport / keyboard ---------------- */
+let maxViewH = 0;
+function handleViewport() {
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  if (!maxViewH) maxViewH = h;
+  maxViewH = Math.max(maxViewH, h);
+  document.documentElement.style.setProperty('--app-h', h + 'px');
+  document.body.classList.toggle('keyboard-open', !!vv && h < maxViewH - 120);
+}
+
 /* ---------------- Init ---------------- */
 function init() {
   // theme
@@ -329,6 +340,12 @@ function init() {
   renderSettings();
   renderStats();
   nextCard();
+
+  // keep layout pinned to the visible viewport (keyboard handling)
+  handleViewport();
+  window.addEventListener('resize', handleViewport);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', handleViewport);
+  window.addEventListener('orientationchange', () => { maxViewH = 0; handleViewport(); });
 
   // events
   formEl.addEventListener('submit', e => { e.preventDefault(); checkAnswer(); });
