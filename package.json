@@ -1,0 +1,17 @@
+{
+  "name": "kana-quest",
+  "version": "1.0.0",
+  "description": "Hiragana & Katakana romaji trainer — installable as a PWA or built into an Android APK with Capacitor.",
+  "private": true,
+  "scripts": {
+    "build:web": "node copy-web.js",
+    "add:android": "cap add android",
+    "sync": "npm run build:web && cap sync android",
+    "open:android": "cap open android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
+  }
+}

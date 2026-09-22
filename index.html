@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="description" content="Learn Hiragana and Katakana by typing the romaji for each symbol." />
+  <title>Kana Quest — Hiragana &amp; Katakana Trainer</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Decorative floating kana background -->
+  <div class="bg-kana" aria-hidden="true">
+    <span class="float-kana f1">あ</span>
+    <span class="float-kana f2">カ</span>
+    <span class="float-kana f3">ん</span>
+    <span class="float-kana f4">キ</span>
+    <span class="float-kana f5">ゆ</span>
+    <span class="float-kana f6">ナ</span>
+    <span class="float-kana f7">を</span>
+    <span class="float-kana f8">ツ</span>
+  </div>
+
+  <div class="app">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">あ</span>
+        <span class="brand-name">Kana<span>Quest</span></span>
+      </div>
+      <div class="topbar-actions">
+        <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button id="themeBtn" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">
+          <svg id="themeIconMoon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="themeIconSun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats strip -->
+    <section class="stats" aria-label="Statistics">
+      <div class="stat">
+        <div class="stat-value" id="streakValue">0</div>
+        <div class="stat-label">🔥 Streak</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="bestStreakValue">0</div>
+        <div class="stat-label">⭐ Best</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="scoreValue">0</div>
+        <div class="stat-label">✅ Correct</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="accuracyValue">—</div>
+        <div class="stat-label">🎯 Accuracy</div>
+      </div>
+    </section>
+
+    <!-- Main card -->
+    <main class="card-wrap">
+      <div class="card" id="card">
+        <div class="card-top">
+          <span class="script-badge" id="scriptBadge">Hiragana</span>
+          <button id="revealBtn" class="ghost-btn" title="Reveal answer (skip)">Show answer</button>
+        </div>
+
+        <div class="kana-stage">
+          <div class="kana" id="kanaChar">あ</div>
+          <div class="feedback" id="feedback" aria-live="polite"></div>
+        </div>
+
+        <form class="answer-form" id="answerForm" autocomplete="off" novalidate>
+          <div class="input-wrap">
+            <input
+              type="text"
+              id="answerInput"
+              class="answer-input"
+              placeholder="Type romaji…"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              autocomplete="off"
+              enterkeyhint="done"
+              aria-label="Type the romaji for the kana"
+            />
+            <button type="submit" class="submit-btn" id="submitBtn" aria-label="Submit answer">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+        </form>
+
+        <p class="hint">Press <kbd>Enter</kbd> to check · <kbd>Esc</kbd> to reveal</p>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <button id="resetBtn" class="link-btn">Reset progress</button>
+    </footer>
+  </div>
+
+  <!-- Settings drawer -->
+  <div class="overlay" id="overlay" hidden></div>
+  <aside class="drawer" id="drawer" aria-label="Settings" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>Practice settings</h2>
+      <button id="closeDrawer" class="icon-btn" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-title">Script</div>
+      <div class="chips" id="scriptChips">
+        <button class="chip" data-script="hiragana">Hiragana</button>
+        <button class="chip" data-script="katakana">Katakana</button>
+        <button class="chip" data-script="both">Both</button>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-title">Character sets</div>
+      <div class="chips" id="groupChips">
+        <button class="chip" data-group="basic">Basic · 46</button>
+        <button class="chip" data-group="dakuten">Dakuten · 25</button>
+        <button class="chip" data-group="combos">Combos · 33</button>
+      </div>
+      <p class="setting-note">Dakuten = が・ざ・だ… · Combos = きゃ・しゃ…</p>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-title">Difficulty</div>
+      <div class="chips" id="modeChips">
+        <button class="chip" data-mode="normal">Normal</button>
+        <button class="chip" data-mode="hard">Hard (no retry)</button>
+      </div>
+      <p class="setting-note" id="modeNote">Normal: wrong answers can be retried. Hard: one attempt per card.</p>
+    </div>
+  </aside>
+
+  <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

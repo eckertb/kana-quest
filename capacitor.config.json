@@ -1,0 +1,11 @@
+{
+  "appId": "com.kanaquest.app",
+  "appName": "Kana Quest",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
