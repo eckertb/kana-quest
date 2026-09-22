@@ -251,6 +251,52 @@ function reveal() {
   setTimeout(() => { busy = false; nextCard(); }, 900);
 }
 
+/* ---------------- In-app keyboard (mobile) ---------------- */
+const KB_ROWS = [
+  ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+];
+
+function makeKey(key, label, extraClass) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'kb-key' + (extraClass ? ' ' + extraClass : '');
+  btn.textContent = label;
+  btn.dataset.key = key;
+  if (key === 'backspace') btn.setAttribute('aria-label', 'Delete');
+  if (key === 'enter') btn.setAttribute('aria-label', 'Submit answer');
+  btn.addEventListener('click', () => onKeyTap(key));
+  return btn;
+}
+
+function buildKeyboard() {
+  const kb = $('inAppKeyboard');
+  if (!kb) return;
+  KB_ROWS.forEach((row, idx) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(k => rowEl.appendChild(makeKey(k, k)));
+    if (idx === KB_ROWS.length - 1) rowEl.appendChild(makeKey('backspace', '⌫', 'kb-back'));
+    kb.appendChild(rowEl);
+  });
+  const enterRow = document.createElement('div');
+  enterRow.className = 'kb-row';
+  enterRow.appendChild(makeKey('enter', 'Enter', 'kb-enter'));
+  kb.appendChild(enterRow);
+}
+
+function onKeyTap(key) {
+  if (busy) return;
+  if (key === 'backspace') {
+    inputEl.value = inputEl.value.slice(0, -1);
+  } else if (key === 'enter') {
+    checkAnswer();
+  } else {
+    inputEl.value += key;
+  }
+}
+
 /* ---------------- Settings ---------------- */
 function renderSettings() {
   document.querySelectorAll('#scriptChips .chip').forEach(c =>
@@ -340,6 +386,13 @@ function init() {
   renderSettings();
   renderStats();
   nextCard();
+
+  // in-app keyboard on touch devices (replaces the system keyboard)
+  if (window.matchMedia('(pointer: coarse)').matches) {
+    buildKeyboard();
+    inputEl.readOnly = true;
+    inputEl.inputMode = 'none';
+  }
 
   // keep layout pinned to the visible viewport (keyboard handling)
   handleViewport();

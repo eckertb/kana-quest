@@ -356,6 +356,46 @@ kbd {
   font-weight: 600;
 }
 
+/* ---------- In-app keyboard (mobile only) ---------- */
+.kb {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+.kb-row {
+  display: flex;
+  gap: 8px;
+}
+.kb-key {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 46px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 0 6px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.kb-key:hover { border-color: var(--accent); }
+.kb-key:active { transform: scale(0.9); background: var(--accent-soft); }
+.kb-back { font-size: 1.3rem; background: var(--surface); }
+.kb-enter {
+  height: 50px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+.kb-enter:active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+
 /* ---------- Footer ---------- */
 .footer { display: flex; justify-content: center; }
 .link-btn {
@@ -480,6 +520,20 @@ kbd {
   .card-wrap { min-height: 0; }
   .card { min-height: 0; }
   .kana-stage { flex-shrink: 1; }
+
+  /* in-app keyboard + compact layout */
+  .kb { display: flex; }
+  .answer-input { pointer-events: none; caret-color: transparent; }
+  .hint { display: none; }
+  .stats { grid-template-columns: repeat(4, 1fr); }
+  .stat { padding: 8px 4px; }
+  .stat-value { font-size: 1.15rem; }
+  .stat-label { font-size: 0.62rem; margin-top: 3px; }
+}
+
+/* Phones: shrink the kana so card + keyboard fit without scrolling */
+@media (pointer: coarse) and (max-width: 480px) {
+  :root { --kana-size: min(30vw, 20vh, 5.5rem); }
 }
 
 /* Compact layout while the keyboard is open */
