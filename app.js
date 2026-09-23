@@ -55,11 +55,12 @@ HIRA.forEach(i => DATA.push({ k: toKata(i.k), r: i.r.slice(), g: i.g, script: 'k
 const SCRIPT_NAMES = { hiragana: 'Hiragana', katakana: 'Katakana' };
 
 /* ---------------- State ---------------- */
-const DEFAULT_SETTINGS = { script: 'hiragana', groups: ['basic', 'dakuten', 'combo'], mode: 'normal' };
+const DEFAULT_SETTINGS = { script: 'hiragana', groups: ['basic', 'dakuten', 'combo'], mode: 'normal', focus: 'all' };
 const DEFAULT_STATS = { correct: 0, wrong: 0, skips: 0, streak: 0, best: 0 };
 
 let settings = loadJSON('kanaQuest.settings', DEFAULT_SETTINGS);
 let stats = loadJSON('kanaQuest.stats', DEFAULT_STATS);
+let trouble = loadJSON('kanaQuest.trouble', { list: [], streaks: {} });
 let pool = [];
 let current = null;
 let lastKana = null;
@@ -93,6 +94,26 @@ function shuffle(arr) {
   return a;
 }
 
+/* ---------------- Troublesome kana ---------------- */
+const TROUBLE_RIGHT_NEEDED = 3; // answered right this many times in a row -> cleared
+
+function troubleKey(item) {
+  return item.script + ':' + item.k;
+}
+function correctStreak(item) {
+  return (trouble.streaks[troubleKey(item)] || {}).c || 0;
+}
+function isTroublesome(item) {
+  return trouble.list.includes(troubleKey(item));
+}
+function saveTrouble() {
+  // drop empty streak records to keep storage tidy
+  Object.keys(trouble.streaks).forEach(key => {
+    if (!trouble.streaks[key].c && !trouble.list.includes(key)) delete trouble.streaks[key];
+  });
+  saveJSON('kanaQuest.trouble', trouble);
+}
+
 /* ---------------- DOM ---------------- */
 const $ = id => document.getElementById(id);
 const kanaEl = $('kanaChar');
@@ -108,6 +129,11 @@ const confettiLayer = $('confettiLayer');
 
 /* ---------------- Build pool ---------------- */
 function buildPool() {
+  if (settings.focus === 'trouble') {
+    // practice the whole troublesome list, regardless of script/group filters
+    pool = DATA.filter(item => isTroublesome(item));
+    return;
+  }
   pool = DATA.filter(item => {
     const scriptOk = settings.script === 'both' || item.script === settings.script;
     const groupOk = settings.groups.includes(item.g);
@@ -118,10 +144,23 @@ function buildPool() {
 function nextCard() {
   buildPool();
   if (pool.length === 0) {
+    current = null;
+    lastKana = null;
     kanaEl.textContent = '？';
-    scriptBadgeEl.textContent = 'No cards';
-    feedbackEl.className = 'feedback';
-    feedbackEl.textContent = 'Select some character sets in settings.';
+    kanaEl.className = 'kana';
+    inputEl.value = '';
+    inputEl.className = 'answer-input';
+    inputEl.disabled = false;
+    if (settings.focus === 'trouble') {
+      kanaEl.textContent = '—';
+      scriptBadgeEl.textContent = 'Troublesome kana';
+      feedbackEl.className = 'feedback show empty';
+      feedbackEl.textContent = 'Your troublesome kana list is empty. Miss a kana and it will appear here.';
+    } else {
+      scriptBadgeEl.textContent = 'No cards';
+      feedbackEl.className = 'feedback show';
+      feedbackEl.textContent = 'Select some character sets in settings.';
+    }
     return;
   }
   // pick a random card, avoid immediate repeat when possible
@@ -206,6 +245,20 @@ function checkAnswer() {
     if (stats.streak > stats.best) stats.best = stats.streak;
     renderStats();
 
+    // Troublesome kana: consecutive correct answers clear the kana,
+    // but only while practicing in troublesome kana mode
+    if (settings.focus === 'trouble') {
+      const tKey = troubleKey(current);
+      const c = correctStreak(current) + 1;
+      if (c >= TROUBLE_RIGHT_NEEDED) {
+        trouble.list = trouble.list.filter(k => k !== tKey);
+        delete trouble.streaks[tKey];
+      } else {
+        trouble.streaks[tKey] = { c };
+      }
+      saveTrouble();
+    }
+
     kanaEl.className = 'kana good';
     inputEl.className = 'answer-input good';
     setFeedback('Correct! ' + current.k + ' = ' + current.r[0], 'good');
@@ -220,6 +273,16 @@ function checkAnswer() {
     stats.wrong++;
     stats.streak = 0;
     renderStats();
+
+    // Troublesome kana: any miss adds the kana to the list
+    const tKey = troubleKey(current);
+    if (!trouble.list.includes(tKey)) {
+      trouble.list.push(tKey);
+    }
+    if (settings.focus === 'trouble') {
+      delete trouble.streaks[tKey]; // a miss breaks the correct streak
+    }
+    saveTrouble();
 
     kanaEl.className = 'kana bad';
     inputEl.className = 'answer-input bad';
@@ -241,6 +304,13 @@ function reveal() {
   stats.skips++;
   stats.streak = 0;
   renderStats();
+
+  // Revealing is neither a miss nor a hit; it only breaks a correct streak
+  // while practicing in troublesome kana mode
+  if (settings.focus === 'trouble') {
+    delete trouble.streaks[troubleKey(current)];
+    saveTrouble();
+  }
 
   kanaEl.className = 'kana';
   inputEl.className = 'answer-input';
@@ -305,6 +375,18 @@ function renderSettings() {
     c.classList.toggle('active', settings.groups.includes(c.dataset.group)));
   document.querySelectorAll('#modeChips .chip').forEach(c =>
     c.classList.toggle('active', c.dataset.mode === settings.mode));
+  document.querySelectorAll('#focusChips .chip').forEach(c =>
+    c.classList.toggle('active', c.dataset.focus === settings.focus));
+  renderTroubleNote();
+}
+
+function renderTroubleNote() {
+  const el = $('troubleNote');
+  if (!el) return;
+  const n = trouble.list.length;
+  el.textContent = n === 0
+    ? 'Empty — miss a kana and it will appear here.'
+    : n + ' troublesome kana — get one right 3× in a row to clear it.';
 }
 
 function bindChips() {
@@ -339,12 +421,22 @@ function bindChips() {
       renderSettings();
     });
   });
+  document.querySelectorAll('#focusChips .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      settings.focus = c.dataset.focus;
+      saveJSON('kanaQuest.settings', settings);
+      renderSettings();
+      lastKana = null;
+      nextCard();
+    });
+  });
 }
 
 /* ---------------- Drawer ---------------- */
 const drawer = $('drawer');
 const overlay = $('overlay');
 function openDrawer() {
+  renderSettings();
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
   overlay.hidden = false;
@@ -413,7 +505,10 @@ function init() {
   $('resetBtn').addEventListener('click', () => {
     if (confirm('Reset all progress and statistics?')) {
       stats = { ...DEFAULT_STATS };
+      trouble = { list: [], streaks: {} };
+      saveJSON('kanaQuest.trouble', trouble);
       renderStats();
+      renderTroubleNote();
       lastKana = null;
       nextCard();
     }
