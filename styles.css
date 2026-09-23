@@ -293,6 +293,17 @@ body {
 .feedback.show { opacity: 1; transform: translateY(0); }
 .feedback.good { color: var(--good); }
 .feedback.bad { color: var(--bad); }
+.feedback.empty {
+  position: static;
+  display: block;
+  text-align: center;
+  color: var(--text-soft);
+  font-weight: 600;
+  line-height: 1.5;
+  max-width: 40ch;
+  margin: 0 auto;
+  padding: 0 8px;
+}
 
 /* ---------- Answer form ---------- */
 .answer-form { width: 100%; }

@@ -1,5 +1,5 @@
 /* Kana Quest — service worker (offline + installable) */
-const CACHE = 'kana-quest-v3';
+const CACHE = 'kana-quest-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -28,16 +28,17 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // Network-first: always try the server so changes appear immediately,
+  // falling back to the cache (offline support) only when the network fails.
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match('./index.html'));
-    })
+    fetch(e.request)
+      .then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        return res;
+      })
+      .catch(() =>
+        caches.match(e.request).then(cached => cached || caches.match('./index.html'))
+      )
   );
 });
