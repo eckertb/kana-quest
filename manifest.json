@@ -1,7 +1,7 @@
 {
-  "name": "Kana Quest — Hiragana & Katakana Trainer",
+  "name": "Kana Quest — Hiragana, Katakana & Kanji Trainer",
   "short_name": "Kana Quest",
-  "description": "Learn Hiragana and Katakana by typing the romaji for each symbol.",
+  "description": "Learn Hiragana, Katakana, and Kanji by typing readings and meanings.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

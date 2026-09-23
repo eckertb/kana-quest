@@ -1,10 +1,11 @@
 /* Kana Quest — service worker (offline + installable) */
-const CACHE = 'kana-quest-v8';
+const CACHE = 'kana-quest-v9';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './kanji-data.js',
   './manifest.json',
   './icons/icon.svg',
   './icons/icon-192.png',

@@ -3,3 +3,4 @@ www/
 android/
 .DS_Store
 *.log
+kanji-jouyou.json

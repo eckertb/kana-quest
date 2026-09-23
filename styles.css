@@ -46,6 +46,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -281,11 +283,12 @@ body {
 }
 
 .feedback {
-  position: absolute;
-  bottom: 4px;
+  display: block;
+  text-align: center;
   font-size: 1rem;
   font-weight: 700;
   min-height: 1.5rem;
+  line-height: 1.4;
   opacity: 0;
   transform: translateY(6px);
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -294,9 +297,6 @@ body {
 .feedback.good { color: var(--good); }
 .feedback.bad { color: var(--bad); }
 .feedback.empty {
-  position: static;
-  display: block;
-  text-align: center;
   color: var(--text-soft);
   font-weight: 600;
   line-height: 1.5;
@@ -334,6 +334,39 @@ body {
 }
 .answer-input.good { border-color: var(--good); box-shadow: 0 0 0 4px var(--good-soft); }
 .answer-input.bad { border-color: var(--bad); box-shadow: 0 0 0 4px var(--bad-soft); }
+.answer-input.focused-input {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  background: var(--surface);
+}
+
+/* ---------- Kanji two-field answer ---------- */
+.kanji-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
+}
+.submit-btn.submit-wide {
+  width: 100%;
+  height: 50px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.submit-btn.submit-wide:hover { transform: none; }
 
 .submit-btn {
   display: grid;
@@ -397,6 +430,11 @@ kbd {
 .kb-key:hover { border-color: var(--accent); }
 .kb-key:active { transform: scale(0.9); background: var(--accent-soft); }
 .kb-back { font-size: 1.3rem; background: var(--surface); }
+.kb-space {
+  flex: 2.2 1 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+}
 .kb-enter {
   height: 50px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -490,6 +528,63 @@ kbd {
 }
 .setting-note { font-size: 0.78rem; color: var(--text-soft); margin: 0; }
 
+/* Range slider (kanji count) */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.range {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+  min-width: 0;
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8px; /* (track 6px - thumb 22px) / 2 */
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 8px -2px var(--accent);
+  cursor: pointer;
+}
+.range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 2px solid var(--surface);
+  box-shadow: 0 2px 8px -2px var(--accent);
+  cursor: pointer;
+}
+.range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+}
+.range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.slider-value {
+  min-width: 68px;
+  text-align: right;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Confetti ---------- */
 .confetti-layer {
   position: fixed;
@@ -535,6 +630,7 @@ kbd {
   /* in-app keyboard + compact layout */
   .kb { display: flex; }
   .answer-input { pointer-events: none; caret-color: transparent; }
+  .kanji-fields .answer-input { pointer-events: auto; caret-color: transparent; }
   .hint { display: none; }
   .stats { grid-template-columns: repeat(4, 1fr); }
   .stat { padding: 8px 4px; }

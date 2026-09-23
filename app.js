@@ -54,8 +54,13 @@ HIRA.forEach(i => DATA.push({ k: toKata(i.k), r: i.r.slice(), g: i.g, script: 'k
 
 const SCRIPT_NAMES = { hiragana: 'Hiragana', katakana: 'Katakana' };
 
+/* Kanji data comes from kanji-data.js (KANJI / KANJI_LEVELS globals). */
+const KANJI_LIST = (typeof KANJI !== 'undefined')
+  ? KANJI.map(item => ({ k: item.k, r: item.r.slice(), m: item.m.slice() }))
+  : [];
+
 /* ---------------- State ---------------- */
-const DEFAULT_SETTINGS = { script: 'hiragana', groups: ['basic', 'dakuten', 'combo'], mode: 'normal', focus: 'all' };
+const DEFAULT_SETTINGS = { subject: 'kana', script: 'hiragana', groups: ['basic', 'dakuten', 'combo'], mode: 'normal', focus: 'all', kanjiLevel: 100 };
 const DEFAULT_STATS = { correct: 0, wrong: 0, skips: 0, streak: 0, best: 0 };
 
 let settings = loadJSON('kanaQuest.settings', DEFAULT_SETTINGS);
@@ -83,6 +88,11 @@ function saveJSON(key, value) {
 
 function normalize(s) {
   return s.toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function normalizeMeaning(s) {
+  // space/punctuation-insensitive: "counter for days" == "counterfordays"
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 function shuffle(arr) {
@@ -126,9 +136,18 @@ const bestEl = $('bestStreakValue');
 const scoreEl = $('scoreValue');
 const accuracyEl = $('accuracyValue');
 const confettiLayer = $('confettiLayer');
+const singleInputWrap = $('singleInputWrap');
+const kanjiFieldsEl = $('kanjiFields');
+const kanjiReadingEl = $('kanjiReadingInput');
+const kanjiMeaningEl = $('kanjiMeaningInput');
+const hintEl = $('hintEl');
 
 /* ---------------- Build pool ---------------- */
 function buildPool() {
+  if (settings.subject === 'kanji') {
+    pool = KANJI_LIST.slice(0, settings.kanjiLevel);
+    return;
+  }
   if (settings.focus === 'trouble') {
     // practice the whole troublesome list, regardless of script/group filters
     pool = DATA.filter(item => isTroublesome(item));
@@ -141,6 +160,15 @@ function buildPool() {
   });
 }
 
+function resetInputs() {
+  [inputEl, kanjiReadingEl, kanjiMeaningEl].forEach(el => {
+    if (!el) return;
+    el.value = '';
+    el.className = 'answer-input';
+    el.disabled = false;
+  });
+}
+
 function nextCard() {
   buildPool();
   if (pool.length === 0) {
@@ -148,10 +176,13 @@ function nextCard() {
     lastKana = null;
     kanaEl.textContent = '？';
     kanaEl.className = 'kana';
-    inputEl.value = '';
-    inputEl.className = 'answer-input';
-    inputEl.disabled = false;
-    if (settings.focus === 'trouble') {
+    resetInputs();
+    if (settings.subject === 'kanji') {
+      kanaEl.textContent = '—';
+      scriptBadgeEl.textContent = 'Kanji';
+      feedbackEl.className = 'feedback show empty';
+      feedbackEl.textContent = 'No kanji available for this level.';
+    } else if (settings.focus === 'trouble') {
       kanaEl.textContent = '—';
       scriptBadgeEl.textContent = 'Troublesome kana';
       feedbackEl.className = 'feedback show empty';
@@ -176,15 +207,21 @@ function nextCard() {
   kanaEl.classList.remove('enter', 'good', 'bad');
   void kanaEl.offsetWidth; // restart CSS animation
   kanaEl.classList.add('enter');
-  scriptBadgeEl.textContent = SCRIPT_NAMES[pick.script];
+  scriptBadgeEl.textContent = settings.subject === 'kanji'
+    ? 'Kanji · ' + settings.kanjiLevel
+    : SCRIPT_NAMES[pick.script];
 
   feedbackEl.className = 'feedback';
   feedbackEl.textContent = '';
-  inputEl.value = '';
-  inputEl.className = 'answer-input';
-  inputEl.disabled = false;
-  // Auto-focus on desktop; on touch the on-screen keyboard stays open on its own
-  if (!window.matchMedia('(pointer: coarse)').matches) inputEl.focus({ preventScroll: true });
+  resetInputs();
+
+  if (settings.subject === 'kanji') {
+    if (window.matchMedia('(pointer: coarse)').matches) setActiveInput(kanjiReadingEl);
+    else kanjiReadingEl.focus({ preventScroll: true });
+  } else {
+    if (window.matchMedia('(pointer: coarse)').matches) setActiveInput(inputEl);
+    else inputEl.focus({ preventScroll: true });
+  }
 }
 
 /* ---------------- Stats UI ---------------- */
@@ -230,6 +267,7 @@ function confetti(count) {
 /* ---------------- Answer checking ---------------- */
 function checkAnswer() {
   if (busy || !current) return;
+  if (settings.subject === 'kanji') { checkKanjiAnswer(); return; }
   const raw = inputEl.value;
   const answer = normalize(raw);
   if (!answer) {
@@ -299,11 +337,77 @@ function checkAnswer() {
   }
 }
 
+function checkKanjiAnswer() {
+  if (busy || !current) return;
+  const reading = normalize(kanjiReadingEl.value);
+  const meaning = normalizeMeaning(kanjiMeaningEl.value);
+
+  if (!reading || !meaning) {
+    setActiveInput(!reading ? kanjiReadingEl : kanjiMeaningEl);
+    setFeedback('Fill in both the reading and the meaning.', 'bad');
+    return;
+  }
+
+  const readingOk = current.r.includes(reading);
+  const meaningOk = current.m.some(m => normalizeMeaning(m) === meaning);
+
+  kanjiReadingEl.className = 'answer-input ' + (readingOk ? 'good' : 'bad');
+  kanjiMeaningEl.className = 'answer-input ' + (meaningOk ? 'good' : 'bad');
+
+  if (readingOk && meaningOk) {
+    stats.correct++;
+    stats.streak++;
+    if (stats.streak > stats.best) stats.best = stats.streak;
+    renderStats();
+
+    kanaEl.className = 'kana good';
+    setFeedback('Correct! ' + current.k + ' = ' + current.r[0] + ' · ' + current.m[0], 'good');
+    popStat(streakEl);
+
+    if (stats.streak > 0 && stats.streak % 5 === 0) confetti(26);
+    else confetti(8);
+
+    busy = true;
+    setTimeout(() => { busy = false; nextCard(); }, 700);
+  } else {
+    stats.wrong++;
+    stats.streak = 0;
+    renderStats();
+
+    kanaEl.className = 'kana bad';
+    setFeedback(current.k + ' = ' + current.r[0] + ' · ' + current.m[0], 'bad');
+    if (!readingOk) kanjiReadingEl.value = '';
+    if (!meaningOk) kanjiMeaningEl.value = '';
+    setActiveInput(!readingOk ? kanjiReadingEl : kanjiMeaningEl);
+
+    if (settings.mode === 'hard') {
+      busy = true;
+      kanjiReadingEl.disabled = true;
+      kanjiMeaningEl.disabled = true;
+      setTimeout(() => { busy = false; nextCard(); }, 1600);
+    }
+  }
+}
+
 function reveal() {
   if (busy || !current) return;
   stats.skips++;
   stats.streak = 0;
   renderStats();
+
+  if (settings.subject === 'kanji') {
+    kanaEl.className = 'kana';
+    kanjiReadingEl.className = 'answer-input';
+    kanjiMeaningEl.className = 'answer-input';
+    setFeedback(current.k + ' = ' + current.r[0] + ' · ' + current.m[0], '');
+    kanjiReadingEl.value = '';
+    kanjiMeaningEl.value = '';
+    kanjiReadingEl.disabled = true;
+    kanjiMeaningEl.disabled = true;
+    busy = true;
+    setTimeout(() => { busy = false; nextCard(); }, 900);
+    return;
+  }
 
   // Revealing is neither a miss nor a hit; it only breaks a correct streak
   // while practicing in troublesome kana mode
@@ -352,32 +456,80 @@ function buildKeyboard() {
   });
   const enterRow = document.createElement('div');
   enterRow.className = 'kb-row';
+  enterRow.appendChild(makeKey(' ', 'Space', 'kb-space'));
   enterRow.appendChild(makeKey('enter', 'Enter', 'kb-enter'));
   kb.appendChild(enterRow);
 }
 
 function onKeyTap(key) {
   if (busy) return;
+  const target = activeInput || inputEl;
   if (key === 'backspace') {
-    inputEl.value = inputEl.value.slice(0, -1);
+    target.value = target.value.slice(0, -1);
   } else if (key === 'enter') {
     checkAnswer();
   } else {
-    inputEl.value += key;
+    target.value += key;
   }
 }
 
+/* The in-app keyboard writes to whichever input is currently selected.
+   On mobile the inputs are read-only, so tapping a box just chooses it. */
+let activeInput = null;
+function setActiveInput(el) {
+  if (!el) return;
+  if (activeInput !== el) {
+    // the highlight ring only matters on touch (where the in-app keyboard
+    // types into the selected box); desktop relies on native :focus
+    if (activeInput) activeInput.classList.remove('focused-input');
+    activeInput = el;
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      activeInput.classList.add('focused-input');
+    }
+  }
+  try { el.focus({ preventScroll: true }); } catch { el.focus(); }
+}
+
 /* ---------------- Settings ---------------- */
+function applySubjectUI() {
+  const isKanji = settings.subject === 'kanji';
+  if (singleInputWrap) singleInputWrap.hidden = isKanji;
+  if (kanjiFieldsEl) kanjiFieldsEl.hidden = !isKanji;
+  const kanaOnly = document.getElementById('kanaOnlyGroups');
+  if (kanaOnly) kanaOnly.hidden = isKanji;
+  const kanjiLevelGroup = document.getElementById('kanjiLevelGroup');
+  if (kanjiLevelGroup) kanjiLevelGroup.hidden = !isKanji;
+  renderHint();
+}
+
+function renderHint() {
+  if (!hintEl) return;
+  const isKanji = settings.subject === 'kanji';
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  hintEl.innerHTML = isKanji
+    ? (touch
+        ? 'Tap a box to type into it · Press <kbd>Enter</kbd> to check · <kbd>Esc</kbd> to reveal'
+        : 'Type the reading and the meaning · Press <kbd>Enter</kbd> to check · <kbd>Esc</kbd> to reveal')
+    : 'Press <kbd>Enter</kbd> to check · <kbd>Esc</kbd> to reveal';
+}
+
 function renderSettings() {
+  document.querySelectorAll('#subjectChips .chip').forEach(c =>
+    c.classList.toggle('active', c.dataset.subject === settings.subject));
   document.querySelectorAll('#scriptChips .chip').forEach(c =>
     c.classList.toggle('active', c.dataset.script === settings.script));
   document.querySelectorAll('#groupChips .chip').forEach(c =>
     c.classList.toggle('active', settings.groups.includes(c.dataset.group)));
+  const kanjiSlider = $('kanjiLevelSlider');
+  if (kanjiSlider) kanjiSlider.value = settings.kanjiLevel;
+  const kanjiLevelValue = $('kanjiLevelValue');
+  if (kanjiLevelValue) kanjiLevelValue.textContent = settings.kanjiLevel + ' kanji';
   document.querySelectorAll('#modeChips .chip').forEach(c =>
     c.classList.toggle('active', c.dataset.mode === settings.mode));
   document.querySelectorAll('#focusChips .chip').forEach(c =>
     c.classList.toggle('active', c.dataset.focus === settings.focus));
   renderTroubleNote();
+  applySubjectUI();
 }
 
 function renderTroubleNote() {
@@ -390,6 +542,29 @@ function renderTroubleNote() {
 }
 
 function bindChips() {
+  document.querySelectorAll('#subjectChips .chip').forEach(c => {
+    c.addEventListener('click', () => {
+      settings.subject = c.dataset.subject;
+      saveJSON('kanaQuest.settings', settings);
+      renderSettings();
+      lastKana = null;
+      nextCard();
+    });
+  });
+  const kanjiSlider = $('kanjiLevelSlider');
+  const kanjiLevelValue = $('kanjiLevelValue');
+  if (kanjiSlider) {
+    kanjiSlider.addEventListener('input', () => {
+      if (kanjiLevelValue) kanjiLevelValue.textContent = kanjiSlider.value + ' kanji';
+    });
+    kanjiSlider.addEventListener('change', () => {
+      settings.kanjiLevel = Number(kanjiSlider.value);
+      saveJSON('kanaQuest.settings', settings);
+      renderSettings();
+      lastKana = null;
+      nextCard();
+    });
+  }
   document.querySelectorAll('#scriptChips .chip').forEach(c => {
     c.addEventListener('click', () => {
       settings.script = c.dataset.script;
@@ -482,8 +657,13 @@ function init() {
   // in-app keyboard on touch devices (replaces the system keyboard)
   if (window.matchMedia('(pointer: coarse)').matches) {
     buildKeyboard();
-    inputEl.readOnly = true;
-    inputEl.inputMode = 'none';
+    [inputEl, kanjiReadingEl, kanjiMeaningEl].forEach(el => {
+      if (!el) return;
+      el.readOnly = true;
+      el.inputMode = 'none';
+      el.addEventListener('pointerdown', () => setActiveInput(el));
+    });
+    setActiveInput(inputEl);
   }
 
   // keep layout pinned to the visible viewport (keyboard handling)
