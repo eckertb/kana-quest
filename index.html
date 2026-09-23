@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#6366f1" />
-  <meta name="description" content="Learn Hiragana and Katakana by typing the romaji for each symbol." />
-  <title>Kana Quest — Hiragana &amp; Katakana Trainer</title>
+  <meta name="description" content="Learn Hiragana, Katakana, and Kanji by typing readings and meanings." />
+  <title>Kana Quest — Hiragana, Katakana &amp; Kanji Trainer</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -72,11 +72,10 @@
 
         <div class="kana-stage">
           <div class="kana" id="kanaChar">あ</div>
-          <div class="feedback" id="feedback" aria-live="polite"></div>
         </div>
 
         <form class="answer-form" id="answerForm" autocomplete="off" novalidate>
-          <div class="input-wrap">
+          <div class="input-wrap" id="singleInputWrap">
             <input
               type="text"
               id="answerInput"
@@ -93,9 +92,45 @@
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
+
+          <div class="kanji-fields" id="kanjiFields" hidden>
+            <div class="field">
+              <label class="field-label" for="kanjiReadingInput">Reading · romaji</label>
+              <input
+                type="text"
+                id="kanjiReadingInput"
+                class="answer-input"
+                placeholder="Type the reading…"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                autocomplete="off"
+                enterkeyhint="next"
+                aria-label="Type the romaji reading for the kanji"
+              />
+            </div>
+            <div class="field">
+              <label class="field-label" for="kanjiMeaningInput">Meaning · English</label>
+              <input
+                type="text"
+                id="kanjiMeaningInput"
+                class="answer-input"
+                placeholder="Type the English meaning…"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                autocomplete="off"
+                enterkeyhint="done"
+                aria-label="Type the English meaning for the kanji"
+              />
+            </div>
+            <button type="submit" class="submit-btn submit-wide" id="kanjiSubmitBtn" aria-label="Submit answer">Check</button>
+          </div>
         </form>
 
-        <p class="hint">Press <kbd>Enter</kbd> to check · <kbd>Esc</kbd> to reveal</p>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+
+        <p class="hint" id="hintEl">Press <kbd>Enter</kbd> to check · <kbd>Esc</kbd> to reveal</p>
       </div>
     </main>
 
@@ -113,22 +148,50 @@
     </div>
 
     <div class="setting-group">
-      <div class="setting-title">Script</div>
-      <div class="chips" id="scriptChips">
-        <button class="chip" data-script="hiragana">Hiragana</button>
-        <button class="chip" data-script="katakana">Katakana</button>
-        <button class="chip" data-script="both">Both</button>
+      <div class="setting-title">Subject</div>
+      <div class="chips" id="subjectChips">
+        <button class="chip" data-subject="kana">Kana</button>
+        <button class="chip" data-subject="kanji">Kanji</button>
       </div>
     </div>
 
-    <div class="setting-group">
-      <div class="setting-title">Character sets</div>
-      <div class="chips" id="groupChips">
-        <button class="chip" data-group="basic">Basic · 46</button>
-        <button class="chip" data-group="dakuten">Dakuten · 25</button>
-        <button class="chip" data-group="combo">Combos · 33</button>
+    <div id="kanaOnlyGroups">
+      <div class="setting-group">
+        <div class="setting-title">Script</div>
+        <div class="chips" id="scriptChips">
+          <button class="chip" data-script="hiragana">Hiragana</button>
+          <button class="chip" data-script="katakana">Katakana</button>
+          <button class="chip" data-script="both">Both</button>
+        </div>
       </div>
-      <p class="setting-note">Dakuten = が・ざ・だ… · Combos = きゃ・しゃ…</p>
+
+      <div class="setting-group">
+        <div class="setting-title">Character sets</div>
+        <div class="chips" id="groupChips">
+          <button class="chip" data-group="basic">Basic · 46</button>
+          <button class="chip" data-group="dakuten">Dakuten · 25</button>
+          <button class="chip" data-group="combo">Combos · 33</button>
+        </div>
+        <p class="setting-note">Dakuten = が・ざ・だ… · Combos = きゃ・しゃ…</p>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">Focus</div>
+        <div class="chips" id="focusChips">
+          <button class="chip" data-focus="all">All kana</button>
+          <button class="chip" data-focus="trouble">Troublesome kana</button>
+        </div>
+        <p class="setting-note" id="troubleNote"></p>
+      </div>
+    </div>
+
+    <div class="setting-group" id="kanjiLevelGroup" hidden>
+      <div class="setting-title">Kanji count</div>
+      <div class="slider-row">
+        <input type="range" id="kanjiLevelSlider" class="range" min="10" max="1000" step="10" value="100" aria-label="Number of most common kanji" />
+        <span class="slider-value" id="kanjiLevelValue">100 kanji</span>
+      </div>
+      <p class="setting-note">Drill the most common kanji, from 10 up to the 1000 most common.</p>
     </div>
 
     <div class="setting-group">
@@ -141,21 +204,13 @@
     </div>
 
     <div class="setting-group">
-      <div class="setting-title">Focus</div>
-      <div class="chips" id="focusChips">
-        <button class="chip" data-focus="all">All kana</button>
-        <button class="chip" data-focus="trouble">Troublesome kana</button>
-      </div>
-      <p class="setting-note" id="troubleNote"></p>
-    </div>
-
-    <div class="setting-group">
       <button id="resetBtn" class="link-btn">Reset progress</button>
     </div>
   </aside>
 
   <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
+  <script src="kanji-data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
